@@ -129,12 +129,21 @@ public class CodeMethodWriter : BaseElementWriter<CodeMethod, CSharpConventionSe
                                             .ThenBy(static x => x.Name, StringComparer.Ordinal))
         {
             if (property.Type is CodeType propertyType)
-                if (propertyType.TypeDefinition is CodeClass && !propertyType.IsCollection)
+                if (propertyType.TypeDefinition is CodeClass && !propertyType.IsCollection && parentClass.DiscriminatorInformation.HasBasicDiscriminatorInformation)
                 {
                     var mappedType = parentClass.DiscriminatorInformation.DiscriminatorMappings.FirstOrDefault(x => x.Value.Name.Equals(propertyType.Name, StringComparison.OrdinalIgnoreCase));
                     writer.WriteLine($"{(includeElse ? "else " : string.Empty)}if(\"{mappedType.Key}\".Equals({DiscriminatorMappingVarName}, StringComparison.OrdinalIgnoreCase)) {{");
                     writer.IncreaseIndent();
                     writer.WriteLine($"{ResultVarName}.{property.Name.ToFirstCharacterUpperCase()} = new {conventions.GetTypeString(propertyType, codeElement)}();");
+                    writer.CloseBlock();
+                }
+                else if (propertyType.TypeDefinition is CodeClass && !propertyType.IsCollection)
+                {
+                    var typeName = conventions.GetTypeString(propertyType, codeElement, true, false);
+                    var valueVarName = $"{property.Name.ToFirstCharacterLowerCase()}Value";
+                    writer.WriteLine($"{(includeElse ? "else " : string.Empty)}if({parseNodeParameter.Name.ToFirstCharacterLowerCase()}.{GetDeserializationMethodName(propertyType, codeElement)} is {{}} {valueVarName}) {{");
+                    writer.IncreaseIndent();
+                    writer.WriteLine($"{ResultVarName}.{property.Name.ToFirstCharacterUpperCase()} = {valueVarName};");
                     writer.CloseBlock();
                 }
                 else if (propertyType.TypeDefinition is CodeClass && propertyType.IsCollection || propertyType.TypeDefinition is null || propertyType.TypeDefinition is CodeEnum)
@@ -196,7 +205,7 @@ public class CodeMethodWriter : BaseElementWriter<CodeMethod, CSharpConventionSe
     {
         var parseNodeParameter = codeElement.Parameters.OfKind(CodeParameterKind.ParseNode) ?? throw new InvalidOperationException("Factory method should have a ParseNode parameter");
 
-        if (parentClass.DiscriminatorInformation.ShouldWriteParseNodeCheck && !parentClass.DiscriminatorInformation.ShouldWriteDiscriminatorForIntersectionType)
+        if (parentClass.DiscriminatorInformation.HasBasicDiscriminatorInformation && !parentClass.DiscriminatorInformation.ShouldWriteDiscriminatorForIntersectionType)
             writer.WriteLine($"var {DiscriminatorMappingVarName} = {parseNodeParameter.Name.ToFirstCharacterLowerCase()}.GetChildNode(\"{parentClass.DiscriminatorInformation.DiscriminatorPropertyName}\")?.GetStringValue();");
 
         if (parentClass.DiscriminatorInformation.ShouldWriteDiscriminatorForInheritedType)
