@@ -561,14 +561,13 @@ public sealed class CodeMethodWriterTests : IDisposable
         Assert.Contains("var mappingValue = parseNode.GetChildNode(\"@odata.type\")?.GetStringValue()", result);
         Assert.DoesNotContain("return mappingValue switch {", result);
         Assert.Contains("var result = new UnionTypeWrapper()", result);
-        Assert.Contains("if(\"#kiota.complexType1\".Equals(mappingValue, StringComparison.OrdinalIgnoreCase))", result);
-        Assert.Contains("ComplexType1Value = new ComplexType1()", result);
-        Assert.Contains("else if(parseNode.GetStringValue() is string stringValueValue)", result);
-        Assert.Contains("StringValue = stringValueValue", result);
         Assert.Contains("parseNode.GetCollectionOfObjectValues<ComplexType2>(ComplexType2.CreateFromDiscriminatorValue)?.ToList() is List<ComplexType2> complexType2ValueValue", result);
         Assert.Contains("ComplexType2Value = complexType2ValueValue", result);
+        Assert.Contains("else if(parseNode.GetStringValue() is string stringValueValue)", result);
+        Assert.Contains("StringValue = stringValueValue", result);
+        Assert.Contains("else if(\"#kiota.complexType1\".Equals(mappingValue, StringComparison.OrdinalIgnoreCase))", result);
+        Assert.Contains("ComplexType1Value = new ComplexType1()", result);
         Assert.Contains("return result", result);
-        AssertExtensions.Before("GetStringValue() is string stringValueValue", "GetCollectionOfObjectValues<ComplexType2>", result);
         AssertExtensions.CurlyBracesAreClosed(result);
     }
     [Fact]
